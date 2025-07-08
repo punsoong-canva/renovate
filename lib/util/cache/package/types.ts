@@ -35,6 +35,7 @@ export type PackageCacheNamespace =
   | 'changelog-gitlab-release'
   | 'datasource-artifactory'
   | 'datasource-aws-machine-image'
+  | 'datasource-apk'
   | 'datasource-aws-rds'
   | 'datasource-aws-eks-addon'
   | 'datasource-azure-bicep-resource'
