@@ -80,7 +80,7 @@ describe('modules/manager/apko/artifacts', () => {
       ]);
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock update',
+          cmd: 'apko lock apko.yaml',
           options: {
             cwd: '.',
             encoding: 'utf-8',
@@ -109,7 +109,7 @@ describe('modules/manager/apko/artifacts', () => {
       ).toBeNull();
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock update',
+          cmd: 'apko lock apko.yaml',
           options: {
             cwd: '.',
             encoding: 'utf-8',
@@ -144,7 +144,7 @@ describe('modules/manager/apko/artifacts', () => {
       ]);
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock update',
+          cmd: 'apko lock apko.yaml',
           options: {
             cwd: '.',
             encoding: 'utf-8',
@@ -173,7 +173,7 @@ describe('modules/manager/apko/artifacts', () => {
       ).toBeNull();
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock update',
+          cmd: 'apko lock apko.yaml',
           options: {
             cwd: '.',
             encoding: 'utf-8',
@@ -211,7 +211,7 @@ describe('modules/manager/apko/artifacts', () => {
       ]);
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock update',
+          cmd: 'apko lock apko.yaml',
           options: {
             cwd: 'config',
             encoding: 'utf-8',

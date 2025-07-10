@@ -27,8 +27,7 @@ export class ApkDatasource extends Datasource {
   override readonly defaultVersioning = looseVersioning;
 
   override readonly defaultRegistryUrls = [
-    'https://dl-cdn.alpinelinux.org/alpine/v3.19/main',
-    'https://dl-cdn.alpinelinux.org/alpine/v3.19/community',
+    'https://dl-cdn.alpinelinux.org/alpine/latest-stable/main',
   ];
 
   override readonly defaultConfig = defaultConfig;
@@ -221,6 +220,7 @@ export class ApkDatasource extends Datasource {
       );
 
       return {
+        homepage: matchingPackages[0].url,
         releases,
         registryUrl,
       };

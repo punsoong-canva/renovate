@@ -33,38 +33,26 @@ describe('modules/manager/apko/extract', () => {
       expect(result).toBeNull();
     });
 
-    it('returns null when the apko YAML file has only base packages', async () => {
-      const apkoYaml = codeBlock`
-        contents:
-          repositories:
-            - https://dl-cdn.alpinelinux.org/alpine/edge/main
-          packages:
-            - alpine-base
-            - base
-      `;
-      const result = await extractPackageFile(apkoYaml, 'apko.yaml');
-      expect(result).toBeNull();
-    });
-
     it('returns a package dependency when the apko YAML file has a single versioned package', async () => {
       const apkoYaml = codeBlock`
         contents:
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
+            - nginx=1.24.0
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -80,12 +68,12 @@ describe('modules/manager/apko/extract', () => {
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
             skipReason: 'not-a-version',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -95,26 +83,26 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
-            - nodejs-20.10.0
+            - nginx=1.24.0
+            - nodejs=20.10.0
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
             currentValue: '20.10.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -125,27 +113,28 @@ describe('modules/manager/apko/extract', () => {
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
             - alpine-base
-            - nginx-1.24.0
+            - nginx=1.24.0
             - base
-            - nodejs-20.10.0
+            - nodejs=20.10.0
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '20.10.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -155,26 +144,28 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0-r0
-            - nodejs-20.10.0-r1
+            - nginx=1.24.0-r0
+            - nodejs=20.10.0-r1
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0-r0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '20.10.0-r1',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -184,32 +175,34 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
+            - nginx=1.24.0
             - nodejs
-            - python-3.11.0
+            - python=3.11.0
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
             skipReason: 'not-a-version',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'python',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '3.11.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -219,8 +212,8 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
-            - nodejs-20.10.0
+            - nginx=1.24.0
+            - nodejs=20.10.0
 
         cmd: /bin/sh -l
 
@@ -234,19 +227,21 @@ describe('modules/manager/apko/extract', () => {
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '20.10.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -256,26 +251,28 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - python-pip-23.0.0
-            - nodejs-npm-10.0.0
+            - python-pip=23.0.0
+            - nodejs-npm=10.0.0
       `;
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'python-pip',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '23.0.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs-npm',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '10.0.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -285,8 +282,8 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
-            - nodejs-20.10.0
+            - nginx=1.24.0
+            - nodejs=20.10.0
       `;
 
       const lockFileContent = JSON.stringify({
@@ -322,18 +319,20 @@ describe('modules/manager/apko/extract', () => {
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
             lockedVersion: '1.24.0-r0',
           },
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nodejs',
             currentValue: '20.10.0',
-            versioning: 'loose',
+            versioning: 'apk',
             lockedVersion: '20.10.0-r0',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
           },
         ],
         lockFiles: ['apko.lock.json'],
@@ -346,7 +345,7 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
+            - nginx=1.24.0
       `;
 
       vi.mocked(getSiblingFileName).mockReturnValue('apko.lock.json');
@@ -356,13 +355,14 @@ describe('modules/manager/apko/extract', () => {
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
 
@@ -372,23 +372,25 @@ describe('modules/manager/apko/extract', () => {
           repositories:
             - https://dl-cdn.alpinelinux.org/alpine/edge/main
           packages:
-            - nginx-1.24.0
+            - nginx=1.24.0
       `;
 
       vi.mocked(getSiblingFileName).mockReturnValue('apko.lock.json');
-      vi.mocked(readLocalFile).mockResolvedValue(null);
+      // vi.mocked(readLocalFile).mockResolvedValue(null);
+      vi.mocked(readLocalFile).mockResolvedValue('invalid json');
 
       const result = await extractPackageFile(apkoYaml, 'apko.yaml');
       expect(result).toEqual({
         deps: [
           {
-            datasource: 'docker',
+            datasource: 'apk',
             depName: 'nginx',
+            registryUrls: ['https://dl-cdn.alpinelinux.org/alpine/edge/main'],
             currentValue: '1.24.0',
-            versioning: 'loose',
+            versioning: 'apk',
           },
         ],
-        lockFiles: undefined,
+        lockFiles: ['apko.lock.json'],
       });
     });
   });

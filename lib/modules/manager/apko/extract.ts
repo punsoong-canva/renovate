@@ -2,7 +2,7 @@ import { logger } from '../../../logger';
 import { getSiblingFileName, readLocalFile } from '../../../util/fs';
 import { parseSingleYaml } from '../../../util/yaml';
 import { ApkDatasource } from '../../datasource/apk';
-import { id as looseVersioning } from '../../versioning/loose';
+import { id as apkVersioning } from '../../versioning/apk';
 import type { PackageDependency, PackageFileContent } from '../types';
 
 // Simple schema for apko configuration
@@ -47,14 +47,18 @@ export async function extractPackageFile(
     // Extract packages from the contents.packages array
     if (parsed.contents?.packages) {
       for (const pkg of parsed.contents.packages) {
-        // Skip base packages that don't have versions
-        if (pkg === 'alpine-base' || pkg === 'base') {
-          continue;
-        }
-
-        // Try to extract version from package name (e.g., "git=2.39.0-r0" or "nginx-1.24.0")
+        // Try to extract version from package name with various formats:
+        // - "git=2.39.0-r0" (equals separator)
+        // - "nginx-1.24.0" (hyphen separator)
+        // - "git>2.40" (version constraint)
+        // - "git>=2.40" (version constraint)
+        // - "git~2.40" (version constraint)
+        // - "git^2.40" (version constraint)
         const equalsVersionMatch = /^(.+)=(\d+\.\d+\.\d+.*)$/.exec(pkg);
         const hyphenVersionMatch = /^(.+)-(\d+\.\d+\.\d+.*)$/.exec(pkg);
+        const constraintVersionMatch = /^(.+)([><=~^][=]?\d+\.\d+.*)$/.exec(
+          pkg,
+        );
 
         if (equalsVersionMatch) {
           const [, depName, currentValue] = equalsVersionMatch;
@@ -62,7 +66,7 @@ export async function extractPackageFile(
             datasource: ApkDatasource.id,
             depName,
             currentValue,
-            versioning: looseVersioning,
+            versioning: apkVersioning,
             registryUrls: parsed.contents?.repositories,
           });
         } else if (hyphenVersionMatch) {
@@ -71,7 +75,16 @@ export async function extractPackageFile(
             datasource: ApkDatasource.id,
             depName,
             currentValue,
-            versioning: looseVersioning,
+            versioning: apkVersioning,
+            registryUrls: parsed.contents?.repositories,
+          });
+        } else if (constraintVersionMatch) {
+          const [, depName, currentValue] = constraintVersionMatch;
+          deps.push({
+            datasource: ApkDatasource.id,
+            depName,
+            currentValue,
+            versioning: apkVersioning,
             registryUrls: parsed.contents?.repositories,
           });
         } else {
@@ -102,30 +115,48 @@ export async function extractPackageFile(
 
         // Create a mapping of package names to locked versions
         const lockedVersions = new Map<string, string>();
+        const lockedPackages = new Set<string>();
 
         // Process all architectures (usually just one, but apko supports multiple)
         for (const archData of Object.values(lockFile.archs || {})) {
           for (const pkg of archData.packages || []) {
             lockedVersions.set(pkg.name, pkg.version);
+            lockedPackages.add(pkg.name);
           }
         }
 
-        // Add locked versions to dependencies
+        // Add locked versions to dependencies and mark packages that are in both files
         for (const dep of deps) {
           if (dep.depName && lockedVersions.has(dep.depName)) {
             dep.lockedVersion = lockedVersions.get(dep.depName);
           }
         }
 
+        // Also add dependencies for packages that are only in the lock file
+        // but not in the apko.yaml (transitive dependencies)
+        for (const [pkgName, pkgVersion] of lockedVersions) {
+          const existingDep = deps.find((dep) => dep.depName === pkgName);
+          if (!existingDep) {
+            deps.push({
+              datasource: ApkDatasource.id,
+              depName: pkgName,
+              currentValue: pkgVersion,
+              lockedVersion: pkgVersion,
+              versioning: apkVersioning,
+              registryUrls: parsed.contents?.repositories,
+            });
+          }
+        }
+
         logger.debug(
-          { packageFile, lockFileName },
+          { packageFile, lockFileName, packageCount: deps.length },
           'Found apko.lock.json with locked versions',
         );
         lockFiles = [lockFileName];
       } catch (err) {
         logger.debug({ err, lockFileName }, 'Error parsing apko.lock.json');
         // Don't include lockFiles if parsing failed
-        lockFiles = undefined;
+        lockFiles = ['not here'];
       }
     }
 

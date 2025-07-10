@@ -27,7 +27,7 @@ describe('modules/manager/apko/index', () => {
 
   describe('supportedDatasources', () => {
     it('should include docker datasource', () => {
-      expect(supportedDatasources).toEqual(['docker']);
+      expect(supportedDatasources).toEqual(['apk']);
     });
   });
 
