@@ -211,7 +211,7 @@ describe('modules/manager/apko/artifacts', () => {
       ]);
       expect(execSnapshots).toMatchObject([
         {
-          cmd: 'apko lock apko.yaml',
+          cmd: 'apko lock apko.yml',
           options: {
             cwd: 'config',
             encoding: 'utf-8',
@@ -221,6 +221,56 @@ describe('modules/manager/apko/artifacts', () => {
           },
         },
       ]);
+
+      // Verify that getSiblingFileName was called with the correct lockfile name
+      expect(fs.getSiblingFileName).toHaveBeenCalledWith(
+        'config/apko.yml',
+        'apko.lock.json',
+      );
+    });
+
+    it('uses custom lockfile name based on package file name', async () => {
+      fs.getSiblingFileName.mockReturnValueOnce('image.lock.json');
+      fs.readLocalFile.mockResolvedValueOnce(`{}`);
+      const execSnapshots = mockExecAll();
+      const oldLockFileContent = Buffer.from('Old image.lock.json');
+      const newLockFileContent = Buffer.from('New image.lock.json');
+      fs.readLocalFile.mockResolvedValueOnce(oldLockFileContent as never);
+      fs.readLocalFile.mockResolvedValueOnce(newLockFileContent as never);
+      expect(
+        await updateArtifacts({
+          packageFileName: 'image.yaml',
+          newPackageFileContent: apkoYaml,
+          updatedDeps: [],
+          config: { isLockFileMaintenance: true },
+        }),
+      ).toEqual([
+        {
+          file: {
+            type: 'addition',
+            path: 'image.lock.json',
+            contents: newLockFileContent,
+          },
+        },
+      ]);
+      expect(execSnapshots).toMatchObject([
+        {
+          cmd: 'apko lock image.yaml',
+          options: {
+            cwd: '.',
+            encoding: 'utf-8',
+            env: {},
+            maxBuffer: 10485760,
+            timeout: 900000,
+          },
+        },
+      ]);
+
+      // Verify that getSiblingFileName was called with the correct lockfile name
+      expect(fs.getSiblingFileName).toHaveBeenCalledWith(
+        'image.yaml',
+        'image.lock.json',
+      );
     });
   });
 });

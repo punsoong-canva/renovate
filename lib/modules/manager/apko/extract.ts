@@ -103,8 +103,14 @@ export async function extractPackageFile(
       return null;
     }
 
-    // Try to extract locked versions from apko.lock.json
-    const lockFileName = getSiblingFileName(packageFile, 'apko.lock.json');
+    // Derive lockfile name from package file name
+    // If package file is 'image.yaml', lockfile should be 'image.lock.json'
+    const packageFileName = packageFile.split('/').pop() ?? 'apko.yaml';
+    const baseName = packageFileName.replace(/\.ya?ml$/, '');
+    const lockFileName = getSiblingFileName(
+      packageFile,
+      `${baseName}.lock.json`,
+    );
     const lockFileContent = await readLocalFile(lockFileName, 'utf8');
 
     let lockFiles: string[] | undefined;

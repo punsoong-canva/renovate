@@ -14,11 +14,18 @@ export async function updateArtifacts({
   updatedDeps,
   newPackageFileContent,
 }: UpdateArtifact): Promise<UpdateArtifactsResult[] | null> {
-  const lockFileName = getSiblingFileName(packageFileName, 'apko.lock.json');
+  // Derive lockfile name from package file name
+  // If package file is 'image.yaml', lockfile should be 'image.lock.json'
+  const fileName = packageFileName.split('/').pop() ?? 'apko.yaml';
+  const baseName = fileName.replace(/\.ya?ml$/, '');
+  const lockFileName = getSiblingFileName(
+    packageFileName,
+    `${baseName}.lock.json`,
+  );
   const existingLockFileContent = await readLocalFile(lockFileName, 'utf8');
 
   if (!existingLockFileContent) {
-    logger.debug('No apko.lock.json found');
+    logger.debug(`No ${lockFileName} found`);
     return null;
   }
 
@@ -48,9 +55,9 @@ export async function updateArtifacts({
       // since apko lock doesn't support updating specific packages
       logger.debug(
         { isLockFileMaintenance, updatedDepsCount: updatedDeps.length },
-        'Regenerating apko.lock.json',
+        `Regenerating ${lockFileName}`,
       );
-      cmd = 'apko lock apko.yaml';
+      cmd = `apko lock ${fileName}`;
     } else {
       logger.trace('No updated apko packages - returning null');
       return null;
@@ -65,7 +72,7 @@ export async function updateArtifacts({
     ) {
       return null;
     }
-    logger.trace('Returning updated apko.lock.json');
+    logger.trace(`Returning updated ${lockFileName}`);
     return [
       {
         file: {
@@ -76,7 +83,7 @@ export async function updateArtifacts({
       },
     ];
   } catch (err) {
-    logger.warn({ err }, 'Error updating apko.lock.json');
+    logger.warn({ err }, `Error updating ${lockFileName}`);
     return [
       {
         artifactError: {
