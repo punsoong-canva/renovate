@@ -10,6 +10,7 @@ import {
   UNKNOWN_ERROR,
 } from '../../constants/error-messages';
 import { newlineRegex, regEx } from '../regex';
+import * as _auth from './auth';
 import * as _behindBaseCache from './behind-base-branch-cache';
 import * as _conflictsCache from './conflicts-cache';
 import * as _modifiedCache from './modified-cache';
@@ -23,11 +24,13 @@ vi.mock('./behind-base-branch-cache');
 vi.mock('./modified-cache');
 vi.mock('timers/promises');
 vi.mock('../cache/repository');
+vi.mock('./auth');
 vi.unmock('.');
 
 const behindBaseCache = vi.mocked(_behindBaseCache);
 const conflictsCache = vi.mocked(_conflictsCache);
 const modifiedCache = vi.mocked(_modifiedCache);
+const auth = vi.mocked(_auth);
 // Class is no longer exported
 const SimpleGit = Git().constructor as { prototype: ReturnType<typeof Git> };
 
@@ -208,6 +211,10 @@ describe('util/git/index', { timeout: 10000 }, () => {
     describe('submodules', () => {
       beforeEach(async () => {
         const repo = Git(base.path);
+
+        auth.getGitEnvironmentVariables.mockReturnValue({
+          GIT_ALLOW_PROTOCOL: 'file',
+        });
 
         const submoduleBasePath = base.path + '/submodule';
         await fs.mkdir(submoduleBasePath);
@@ -438,6 +445,26 @@ describe('util/git/index', { timeout: 10000 }, () => {
     });
   });
 
+  describe('getBranchFilesFromCommit(sha)', () => {
+    it('detects changed files compared to the parent commit', async () => {
+      const file: FileChange = {
+        type: 'addition',
+        path: 'some-new-file',
+        contents: 'some new-contents',
+      };
+      const sha = await git.commitFiles({
+        branchName: 'renovate/branch_with_changes',
+        files: [
+          file,
+          { type: 'addition', path: 'dummy', contents: null as never },
+        ],
+        message: 'Create something',
+      });
+      const branchFiles = await git.getBranchFilesFromCommit(sha!);
+      expect(branchFiles).toEqual(['some-new-file']);
+    });
+  });
+
   describe('mergeBranch(branchName)', () => {
     it('should perform a branch merge', async () => {
       await git.mergeBranch('renovate/future_branch');
@@ -585,7 +612,7 @@ describe('util/git/index', { timeout: 10000 }, () => {
       const files = lsTree
         .trim()
         .split(newlineRegex)
-        .map((x) => x.split(/\s/))
+        .map((x) => x.split(regEx(/\s/)))
         .map(([mode, type, _hash, name]) => [mode, type, name]);
       expect(files).toContainEqual(['100644', 'blob', 'past_file']);
       expect(files).toContainEqual(['120000', 'blob', 'future_link']);
@@ -1217,7 +1244,10 @@ describe('util/git/index', { timeout: 10000 }, () => {
   describe('syncGit()', () => {
     it('should clone a specified base branch', async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true });
-      GlobalConfig.set({ baseBranches: ['develop'], localDir: tmpDir.path });
+      GlobalConfig.set({
+        baseBranchPatterns: ['develop'],
+        localDir: tmpDir.path,
+      });
       await git.initRepo({
         url: origin.path,
         defaultBranch: 'develop',

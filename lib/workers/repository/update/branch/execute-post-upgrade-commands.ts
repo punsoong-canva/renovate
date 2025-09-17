@@ -10,6 +10,7 @@ import { coerceArray } from '../../../../util/array';
 import { exec } from '../../../../util/exec';
 import type { ExecOptions } from '../../../../util/exec/types';
 import {
+  ensureLocalDir,
   localPathIsFile,
   outputCacheFile,
   privateCacheDir,
@@ -17,6 +18,7 @@ import {
   writeLocalFile,
 } from '../../../../util/fs';
 import { getRepoStatus } from '../../../../util/git';
+import { getGitEnvironmentVariables } from '../../../../util/git/auth';
 import type { FileChange } from '../../../../util/git/types';
 import { minimatch } from '../../../../util/minimatch';
 import { regEx } from '../../../../util/regex';
@@ -98,6 +100,20 @@ export async function postUpgradeCommandsExecutor(
         }
       }
 
+      const workingDirTemplate = upgrade.postUpgradeTasks?.workingDirTemplate;
+      let workingDir: string | null = null;
+
+      if (workingDirTemplate) {
+        workingDir = sanitize(
+          compile(workingDirTemplate, mergeChildConfig(config, upgrade)),
+        );
+        await ensureLocalDir(workingDir);
+        logger.trace(
+          { workingDirTemplate },
+          'Processed post-upgrade commands working directory template.',
+        );
+      }
+
       for (const cmd of commands) {
         const compiledCmd = compile(cmd, mergeChildConfig(config, upgrade));
         if (compiledCmd !== cmd) {
@@ -113,7 +129,10 @@ export async function postUpgradeCommandsExecutor(
             logger.trace({ cmd: compiledCmd }, 'Executing post-upgrade task');
 
             const execOpts: ExecOptions = {
-              cwd: GlobalConfig.get('localDir'),
+              cwd: is.nonEmptyString(workingDir)
+                ? workingDir
+                : GlobalConfig.get('localDir'),
+              extraEnv: getGitEnvironmentVariables(),
             };
             if (dataFilePath) {
               execOpts.env = {
@@ -158,6 +177,7 @@ export async function postUpgradeCommandsExecutor(
           addedCount: status.not_added?.length,
           modifiedCount: status.modified?.length,
           deletedCount: status.deleted?.length,
+          renamedCount: status.renamed?.length,
         },
         'git status counts after post-upgrade tasks',
       );
@@ -165,10 +185,12 @@ export async function postUpgradeCommandsExecutor(
       const addedOrModifiedFiles = [
         ...coerceArray(status.not_added),
         ...coerceArray(status.modified),
+        ...coerceArray(status.renamed?.map((x) => x.to)),
       ];
       const changedFiles = [
         ...addedOrModifiedFiles,
         ...coerceArray(status.deleted),
+        ...coerceArray(status.renamed?.map((x) => x.from)),
       ];
 
       // Check for files which were previously deleted but have been re-added without modification
