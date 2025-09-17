@@ -338,15 +338,12 @@ importers:
       source-map-support:
         specifier: 0.5.21
         version: 0.5.21
-<<<<<<< HEAD
-      tar-stream:
-        specifier: 3.1.7
-        version: 3.1.7
-=======
       strip-json-comments:
         specifier: 5.0.3
         version: 5.0.3
->>>>>>> origin/main
+      tar-stream:
+        specifier: 3.1.7
+        version: 3.1.7
       toml-eslint-parser:
         specifier: 0.10.0
         version: 0.10.0
@@ -8907,7 +8904,7 @@ snapshots:
 
   '@types/tar-stream@3.1.4':
     dependencies:
-      '@types/node': 22.15.34
+      '@types/node': 22.18.1
 
   '@types/tar@6.1.13':
     dependencies:

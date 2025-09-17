@@ -19,6 +19,6 @@ archs:
   - aarch64
 ```
 
-Note: `apko` does not specify a default filenames, however https://github.com/chainguard-dev/rules_apko examples use `apko.yaml` as the filename and hence use `apko.lock.json` lock filenames.
+Note: `apko` does not specify a default filenames, however [rules_apko](https://github.com/chainguard-dev/rules_apko) examples use `apko.yaml` as the filename and hence use `apko.lock.json` lock filenames.
 
 This manager also support lock file `LockFileMaintenance`, updating `apko.lock.json` files that are generated with the `apko lock apko.yaml` command.
