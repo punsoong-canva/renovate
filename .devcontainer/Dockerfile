@@ -4,4 +4,3 @@ FROM ghcr.io/containerbase/devcontainer:13.13.0
 # renovate: datasource=npm
 RUN install-tool pnpm 10.15.1
 RUN install-tool node 22.17.0
-
