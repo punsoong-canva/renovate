@@ -54,10 +54,10 @@ export function parseApkIndex(indexContent: string): ApkPackage[] {
             packageInfo.url = value;
             break;
           case 'S':
-            packageInfo.size = parseInt(value, 10);
+            packageInfo.size = parseInt(value);
             break;
           case 'I':
-            packageInfo.buildDate = parseInt(value, 10);
+            packageInfo.buildDate = parseInt(value);
             break;
           case 'o':
             packageInfo.origin = value;

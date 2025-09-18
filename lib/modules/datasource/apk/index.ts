@@ -215,7 +215,7 @@ export class ApkDatasource extends Datasource {
       }));
 
       logger.debug(
-        { packageName, registryUrl, releaseCount: releases.length },
+        { packageName, registryUrl, releaseCount: releases.length, releases },
         'Found APK releases',
       );
 

@@ -22,6 +22,10 @@ export interface ApkVersion extends GenericVersion {
    * same upstream version.
    */
   releaseString: string;
+  /**
+   * prerelease identifier if present (e.g., "rc1" from "2.39.0_rc1-r0")
+   */
+  prerelease?: string;
 }
 
 class ApkVersioningApi extends GenericVersioningApi {
@@ -44,15 +48,29 @@ class ApkVersioningApi extends GenericVersioningApi {
       versionPart = version;
     }
 
-    // Extract numeric parts for comparison
-    const release = [...version.matchAll(regEx(/\d+/g))].map((m) =>
-      parseInt(m[0], 10),
+    // Extract numeric parts from the version part
+    // Handle _p patterns as part of the version (not prerelease)
+    // Handle _rc patterns as prerelease identifiers
+    let mainVersionPart = versionPart;
+    let prerelease: string | undefined;
+
+    // Check for prerelease patterns (_rc, ~)
+    const prereleaseMatch = regEx(/[_~](rc\d+)/).exec(versionPart);
+    if (prereleaseMatch) {
+      prerelease = prereleaseMatch[1];
+      // Remove prerelease part from main version
+      mainVersionPart = versionPart.substring(0, prereleaseMatch.index);
+    }
+
+    const release = [...mainVersionPart.matchAll(regEx(/\d+/g))].map((m) =>
+      parseInt(m[0]),
     );
 
     return {
       version: versionPart,
       releaseString: releasePart,
       release,
+      prerelease,
     };
   }
 
@@ -118,8 +136,8 @@ class ApkVersioningApi extends GenericVersioningApi {
         if (!matchv2 || !/^\d+$/.test(matchv2)) {
           return 1; // numbers are greater than letters
         }
-        const num1 = parseInt(matchv1, 10);
-        const num2 = parseInt(matchv2, 10);
+        const num1 = parseInt(matchv1);
+        const num2 = parseInt(matchv2);
         if (num1 !== num2) {
           return num1 - num2;
         }
@@ -165,11 +183,120 @@ class ApkVersioningApi extends GenericVersioningApi {
     if (!parsed) {
       return false;
     }
-    // Consider versions without _rc# pattern as stable
-    const rcPattern = regEx(/_rc\d+/);
-    return (
-      !rcPattern.test(parsed.version) && !rcPattern.test(parsed.releaseString)
-    );
+    // Consider versions without prerelease identifiers as stable
+    return !parsed.prerelease;
+  }
+
+  override getSatisfyingVersion(
+    versions: string[],
+    range: string,
+  ): string | null {
+    // Handle range expressions like >5.2.37-r0, >=5.2.37-r0, etc.
+    const rangeMatch = /^([><=~^]+)(.+)$/.exec(range);
+    if (!rangeMatch) {
+      // If no range operator, look for exact match
+      return versions.find((v) => this.equals(v, range)) ?? null;
+    }
+
+    const [, operator, targetVersion] = rangeMatch;
+
+    // Filter versions that satisfy the range
+    const satisfyingVersions = versions.filter((version) => {
+      if (!this.isValid(version) || !this.isValid(targetVersion)) {
+        return false;
+      }
+
+      switch (operator) {
+        case '>':
+          return this.isGreaterThan(version, targetVersion);
+        case '>=':
+          return (
+            this.isGreaterThan(version, targetVersion) ||
+            this.equals(version, targetVersion)
+          );
+        case '<':
+          return this.isLessThanRange(version, targetVersion);
+        case '<=':
+          return (
+            this.isLessThanRange(version, targetVersion) ||
+            this.equals(version, targetVersion)
+          );
+        case '=':
+        case '==':
+          return this.equals(version, targetVersion);
+        case '~': {
+          // Tilde range: allow patch-level changes if a minor version is specified
+          const targetParsed = this._parse(targetVersion);
+          const versionParsed = this._parse(version);
+          if (!targetParsed || !versionParsed) {
+            return false;
+          }
+
+          // Must have same major and minor versions
+          if (
+            targetParsed.release[0] !== versionParsed.release[0] ||
+            targetParsed.release[1] !== versionParsed.release[1]
+          ) {
+            return false;
+          }
+
+          // Version must be >= target
+          return (
+            this.isGreaterThan(version, targetVersion) ||
+            this.equals(version, targetVersion)
+          );
+        }
+        case '^': {
+          // Caret range: allow changes that do not modify the left-most non-zero digit
+          const targetMajor = this.getMajor(targetVersion);
+          const versionMajor = this.getMajor(version);
+          if (targetMajor === null || versionMajor === null) {
+            return false;
+          }
+
+          if (targetMajor === 0) {
+            // For 0.x.x, allow patch and minor changes
+            const targetMinor = this.getMinor(targetVersion);
+            const versionMinor = this.getMinor(version);
+            if (targetMinor === null || versionMinor === null) {
+              return false;
+            }
+
+            return (
+              targetMinor === versionMinor &&
+              (this.isGreaterThan(version, targetVersion) ||
+                this.equals(version, targetVersion))
+            );
+          } else {
+            // For x.x.x where x > 0, allow minor and patch changes
+            return (
+              targetMajor === versionMajor &&
+              (this.isGreaterThan(version, targetVersion) ||
+                this.equals(version, targetVersion))
+            );
+          }
+        }
+        default:
+          return false;
+      }
+    });
+
+    if (satisfyingVersions.length === 0) {
+      return null;
+    }
+
+    // Return the highest satisfying version
+    return satisfyingVersions.sort((a, b) => this.sortVersions(b, a))[0];
+  }
+
+  override getMajor(version: string): number | null {
+    const parsed = this._parse(version);
+    return parsed && parsed.release.length > 0 ? parsed.release[0] : null;
+  }
+
+  override getMinor(version: string): number | null {
+    const parsed = this._parse(version);
+    return parsed && parsed.release.length > 1 ? parsed.release[1] : null;
   }
 }
 
