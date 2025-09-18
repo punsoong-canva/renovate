@@ -21,7 +21,7 @@ archs:
 
 Note: `apko` does not specify default filenames, however [rules_apko](https://github.com/chainguard-dev/rules_apko) examples use `apko.yaml` as the filename and hence use `apko.lock.json` lock filenames.
 
-## Version Format
+### Version Format
 
 The manager supports Alpine Linux APK versioning format:
 
@@ -29,6 +29,6 @@ The manager supports Alpine Linux APK versioning format:
 - `package-version` (e.g., `nginx-1.24.0`)
 - Version constraints: `package>version`, `package>=version`, `package~version`, `package^version`
 
-## Lock File Support
+### Lock File Support
 
 This manager also supports lock file `LockFileMaintenance`, updating `apko.lock.json` files that are generated with the `apko lock apko.yaml` command.
