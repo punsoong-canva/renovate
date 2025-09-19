@@ -47,39 +47,12 @@ export async function extractPackageFile(
     // Extract packages from the contents.packages array
     if (parsed.contents?.packages) {
       for (const pkg of parsed.contents.packages) {
-        // Try to extract version from package name with various formats:
-        // - "git=2.39.0-r0" (equals separator)
-        // - "nginx-1.24.0" (hyphen separator)
-        // - "git>2.40" (version constraint)
-        // - "git>=2.40" (version constraint)
-        // - "git~2.40" (version constraint)
-        // - "git^2.40" (version constraint)
-        const equalsVersionMatch = /^(.+)=(\d+\.\d+\.\d+.*)$/.exec(pkg);
-        const hyphenVersionMatch = /^(.+)-(\d+\.\d+\.\d+.*)$/.exec(pkg);
-        const constraintVersionMatch = /^(.+)([><=~^][=]?\d+\.\d+.*)$/.exec(
-          pkg,
-        );
+        // Try to extract version from package.
+        // format is name{@tag}{[<>~=]version} - from https://wiki.alpinelinux.org/wiki/Alpine_Package_Keeper#Add_a_Package
+        const versionMatch = /^(.+)[=><~^][=]?(.+)$/.exec(pkg);
 
-        if (equalsVersionMatch) {
-          const [, depName, currentValue] = equalsVersionMatch;
-          deps.push({
-            datasource: ApkDatasource.id,
-            depName,
-            currentValue,
-            versioning: apkVersioning,
-            registryUrls: parsed.contents?.repositories,
-          });
-        } else if (hyphenVersionMatch) {
-          const [, depName, currentValue] = hyphenVersionMatch;
-          deps.push({
-            datasource: ApkDatasource.id,
-            depName,
-            currentValue,
-            versioning: apkVersioning,
-            registryUrls: parsed.contents?.repositories,
-          });
-        } else if (constraintVersionMatch) {
-          const [, depName, currentValue] = constraintVersionMatch;
+        if (versionMatch) {
+          const [, depName, currentValue] = versionMatch;
           deps.push({
             datasource: ApkDatasource.id,
             depName,

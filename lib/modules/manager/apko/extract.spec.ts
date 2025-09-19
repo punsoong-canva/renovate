@@ -479,5 +479,43 @@ describe('modules/manager/apko/extract', () => {
         'image.lock.json',
       );
     });
+
+    it('handles different repository (Wolfi) with apkoYaml configuration', async () => {
+      const apkoYaml = codeBlock`
+        contents:
+          repositories:
+            - https://packages.wolfi.dev/os
+          packages:
+            - wolfi-base
+            - glibc=2.36-r3
+            - binutils=2.39-r4
+      `;
+      const result = await extractPackageFile(apkoYaml, 'apko.yaml');
+      expect(result).toEqual({
+        deps: [
+          {
+            datasource: 'apk',
+            depName: 'wolfi-base',
+            registryUrls: ['https://packages.wolfi.dev/os'],
+            skipReason: 'not-a-version',
+          },
+          {
+            datasource: 'apk',
+            depName: 'glibc',
+            registryUrls: ['https://packages.wolfi.dev/os'],
+            currentValue: '2.36-r3',
+            versioning: 'apk',
+          },
+          {
+            datasource: 'apk',
+            depName: 'binutils',
+            registryUrls: ['https://packages.wolfi.dev/os'],
+            currentValue: '2.39-r4',
+            versioning: 'apk',
+          },
+        ],
+        lockFiles: undefined, // No lock file mocked, so will be undefined
+      });
+    });
   });
 });
