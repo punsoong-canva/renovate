@@ -17,15 +17,21 @@ describe('modules/versioning/apk/index', () => {
 
   describe('isStable', () => {
     it.each`
-      version             | expected
-      ${'2.39.0-r0'}      | ${true}
-      ${'2.39.0_rc1-r0'}  | ${false}
-      ${'2.39.0'}         | ${true}
-      ${'2.39.0-r0'}      | ${true}
-      ${'2.39.0_rc2'}     | ${false}
-      ${'2.39.0_rc10-r0'} | ${false}
-      ${'2.39.0_rc1'}     | ${false}
-      ${'2.39.0_rc0'}     | ${false}
+      version               | expected
+      ${'2.39.0-r0'}        | ${true}
+      ${'2.39.0_rc1-r0'}    | ${false}
+      ${'2.39.0'}           | ${true}
+      ${'2.39.0-r0'}        | ${true}
+      ${'2.39.0_rc2'}       | ${false}
+      ${'2.39.0_rc10-r0'}   | ${false}
+      ${'2.39.0_rc1'}       | ${false}
+      ${'2.39.0_rc0'}       | ${false}
+      ${'6.5_p20250503-r0'} | ${true}
+      ${'1.0_p1-r0'}        | ${true}
+      ${'2.0_cvs-r0'}       | ${true}
+      ${'3.0_git-r0'}       | ${true}
+      ${'4.0_alpha-r0'}     | ${false}
+      ${'5.0_beta-r0'}      | ${false}
     `('isStable($version) === $expected', ({ version, expected }) => {
       expect(apk.isStable(version)).toBe(expected);
     });
@@ -33,9 +39,10 @@ describe('modules/versioning/apk/index', () => {
 
   describe('getMajor', () => {
     it.each`
-      version            | expected
-      ${'2.39.0-r0'}     | ${2}
-      ${'2.39.0_rc1-r0'} | ${2}
+      version               | expected
+      ${'2.39.0-r0'}        | ${2}
+      ${'2.39.0_rc1-r0'}    | ${2}
+      ${'0.1.3_alpha_pre2'} | ${0}
     `('getMajor($version) === $expected', ({ version, expected }) => {
       expect(apk.getMajor(version)).toBe(expected);
     });
@@ -43,9 +50,10 @@ describe('modules/versioning/apk/index', () => {
 
   describe('getMinor', () => {
     it.each`
-      version            | expected
-      ${'2.39.0-r0'}     | ${39}
-      ${'2.39.0_rc1-r0'} | ${39}
+      version               | expected
+      ${'2.39.0-r0'}        | ${39}
+      ${'2.39.0_rc1-r0'}    | ${39}
+      ${'0.1.3_alpha_pre2'} | ${1}
     `('getMinor($version) === $expected', ({ version, expected }) => {
       expect(apk.getMinor(version)).toBe(expected);
     });
@@ -53,10 +61,14 @@ describe('modules/versioning/apk/index', () => {
 
   describe('getPatch', () => {
     it.each`
-      version               | expected
-      ${'2.39.0-r0'}        | ${0}
-      ${'2.39.0_rc1-r0'}    | ${0}
-      ${'6.5_p20250503-r0'} | ${20250503}
+      version                  | expected
+      ${'2.39.0-r0'}           | ${0}
+      ${'2.39.0_rc1-r0'}       | ${0}
+      ${'6.5_p20250503-r0'}    | ${null}
+      ${'3.9_pre20060124'}     | ${null}
+      ${'0.3.4_pre20061029'}   | ${4}
+      ${'0.1.3_alpha_pre2'}    | ${3}
+      ${'0.1.3_alpha_pre2-r1'} | ${3}
     `('getPatch($version) === $expected', ({ version, expected }) => {
       expect(apk.getPatch(version)).toBe(expected);
     });
@@ -83,11 +95,12 @@ describe('modules/versioning/apk/index', () => {
 
   describe('isGreaterThan', () => {
     it.each`
-      a              | b              | expected
-      ${'2.39.1-r0'} | ${'2.39.0-r0'} | ${true}
-      ${'2.39.0-r1'} | ${'2.39.0-r0'} | ${true}
-      ${'2.39.0-r0'} | ${'2.39.1-r0'} | ${false}
-      ${'2.39.0-r0'} | ${'2.39.0-r1'} | ${false}
+      a               | b               | expected
+      ${'2.39.1-r0'}  | ${'2.39.0-r0'}  | ${true}
+      ${'2.39.0-r1'}  | ${'2.39.0-r0'}  | ${true}
+      ${'2.39.0-r0'}  | ${'2.39.1-r0'}  | ${false}
+      ${'2.39.0-r0'}  | ${'2.39.0-r1'}  | ${false}
+      ${'1.4_p12-r5'} | ${'1.4_p12-r2'} | ${true}
     `('isGreaterThan($a, $b) === $expected', ({ a, b, expected }) => {
       expect(apk.isGreaterThan(a, b)).toBe(expected);
     });
