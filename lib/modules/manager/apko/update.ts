@@ -23,15 +23,21 @@ export function updateDependency({
 
   const match = fileContent.match(packageLineRegex);
   if (!match) {
+    // Check if the new version is already present (for reuseExistingBranch case)
+    const newPackageSpec = `${depName}=${newValue}`;
+    if (fileContent.includes(newPackageSpec)) {
+      logger.trace('Version is already updated');
+      return fileContent;
+    }
+
     // Fallback to old behavior for backward compatibility with tests
     const oldPackageSpec = `${depName}=${currentValue}`;
     if (fileContent.includes(oldPackageSpec)) {
-      const newPackageSpec = `${depName}=${newValue}`;
       const newContent = fileContent.replace(oldPackageSpec, newPackageSpec);
 
       if (newContent === fileContent) {
-        logger.debug('No changes made to package file');
-        return null;
+        logger.trace('Version is already updated');
+        return fileContent;
       }
 
       logger.debug(
@@ -49,6 +55,12 @@ export function updateDependency({
   }
 
   const oldPackageLine = match[0];
+
+  // Check if the version is already updated (for reuseExistingBranch case)
+  if (oldPackageLine.includes(`${depName}=${newValue}`)) {
+    logger.trace('Version is already updated');
+    return fileContent;
+  }
 
   // Extract the prefix (indentation and list marker)
   const constraintMatch = /^(\s*-\s+)([^=]+)(=.*)$/.exec(oldPackageLine);
@@ -68,8 +80,8 @@ export function updateDependency({
   const newContent = fileContent.replace(oldPackageLine, newPackageLine);
 
   if (newContent === fileContent) {
-    logger.debug('No changes made to package file');
-    return null;
+    logger.trace('Version is already updated');
+    return fileContent;
   }
 
   logger.debug(

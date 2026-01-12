@@ -6,6 +6,7 @@ import { updateDependency } from './update';
 vi.mock('../../../logger', () => ({
   logger: {
     debug: vi.fn(),
+    trace: vi.fn(),
   },
 }));
 
@@ -84,9 +85,10 @@ describe('modules/manager/apko/update', () => {
       );
     });
 
-    it('should return null when no changes are made', () => {
+    it('should return fileContent when version is already updated', () => {
+      const fileContent = 'package=1.0.0';
       const result = updateDependency({
-        fileContent: 'package=1.0.0',
+        fileContent,
         upgrade: {
           depName: 'package',
           currentValue: '1.0.0',
@@ -94,9 +96,9 @@ describe('modules/manager/apko/update', () => {
         },
       });
 
-      expect(result).toBeNull();
-      expect(logger.debug).toHaveBeenCalledExactlyOnceWith(
-        'No changes made to package file',
+      expect(result).toBe(fileContent);
+      expect(logger.trace).toHaveBeenCalledExactlyOnceWith(
+        'Version is already updated',
       );
     });
 
@@ -146,7 +148,7 @@ describe('modules/manager/apko/update', () => {
       expect(result).toBe('complex-package-name=1.2.4-r0\nother-package=2.0.0');
     });
 
-    it('should return null when no changes are made in main path', () => {
+    it('should return fileContent when version is already updated in YAML', () => {
       const yamlContent = `contents:
   packages:
     - git=2.51.1
@@ -163,9 +165,34 @@ archs:
         },
       });
 
-      expect(result).toBeNull();
-      expect(logger.debug).toHaveBeenCalledExactlyOnceWith(
-        'No changes made to package file',
+      expect(result).toBe(yamlContent);
+      expect(logger.trace).toHaveBeenCalledExactlyOnceWith(
+        'Version is already updated',
+      );
+    });
+
+    it('should return fileContent when reuseExistingBranch has new version', () => {
+      // This tests the reuseExistingBranch case where the file content
+      // already has the new version but currentValue is still the old version
+      const yamlContent = `contents:
+  packages:
+    - uv=0.9.21
+    - bash=5.2.37-r0
+archs:
+  - x86_64`;
+
+      const result = updateDependency({
+        fileContent: yamlContent,
+        upgrade: {
+          depName: 'uv',
+          currentValue: '0.9.18', // Old version from base branch
+          newValue: '0.9.21', // New version already in existing branch
+        },
+      });
+
+      expect(result).toBe(yamlContent);
+      expect(logger.trace).toHaveBeenCalledExactlyOnceWith(
+        'Version is already updated',
       );
     });
 
